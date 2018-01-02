@@ -1,0 +1,5656 @@
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+1
+ 
+
+ 
+Abstract
+ 
+The underlying assumption in traditional machine learning algorithms is that instances are I.I.D., 
+Independent and Identically Distributed.  These critical independence assumptions made in traditional machine learning 
+algorithms prevent them from going beyond instance boundaries to exploit latent relations
+ 
+between features
+. 
+In this 
+article, we develop a
+ 
+general approach to supervised learning by leveraging higher
+-
+order dependencies between features. 
+We introduce a novel Bayesian framework for classification 
+termed
+ 
+Higher Order 
+Naïve 
+Bayes (HONB). Unlike 
+approaches that assume data instances are independe
+nt, HONB leverages 
+higher order relations between features 
+across 
+different instances.
+ 
+The 
+approach
+ 
+is validated in the 
+classification domain on 
+widely
+-
+used benchmark datasets
+.
+ 
+Results 
+obtained on several benchmark text corpora demonstrate that higher
+-
+orde
+r approaches achieve significant improvements 
+in classification accuracy over the baseline methods
+,
+ 
+especially 
+when
+ 
+training data 
+is scarce
+.
+ 
+ 
+A
+ 
+complexity 
+analysis 
+also 
+reveals that the s
+pace and time complexity of HONB 
+compare favorably with existing appr
+oaches.
+ 
+ 
+ 
+Index Terms
+ 
+Machine Learning, 
+Statistical Relational Learning, 
+Naïve B
+ayes, Text Classification, IID
+.
+ 
+I.
+ 
+I
+NTRODUCTION
+ 
+well known problem in real
+-
+world applications of machine learning is that expert labeling of 
+large amounts of data for training a
+ 
+classifier is prohibitively
+ 
+expensive. Often in practice, only a 
+small amount of labeled data is
+ 
+available for training. In this case, however, 
+making
+ 
+an adequate
+ 
+estimation of the model parameters of a classifier 
+is 
+challenging.
+  
+Underlying this issue is
+ 
+the 
+traditional 
+assumption in 
+m
+achine learning algorithms that instances are I.I.D.: independent and 
+identically distributed 
+[
+1
+]
+.  This assumption simplifies the underlying mathematics of statistical 
+models, but in fact does not hold for many real world a
+pplications 
+[
+2
+]
+. 
+ 
+As a result of this 
+assumption, m
+odels constructed under the I.I.D. assumption do not 
+leverage
+ 
+connections 
+between the attributes in different instances. A well
+-
+known example is market basket analysis, 
+which forms sets of items that are p
+urchased together
+ 
+in a given context such as a market basket
+. 
+The advantage to this approach is that
+ 
+classification of a single instance of previously unseen 
+ 
+William M. Pottenger and Cibin George are with 
+Rutgers University, Piscataway, NJ 08854 USA (telephone: (732) 445
+-
+5930, e
+-
+mail: 
+drwmp@cs.rutgers.edu).
+ 
+Murat Can Ganiz
+ 
+
+
+ 
+(telephone: (+90 216) 5445555, e
+-
+mail: 
+mcganiz@dogus.edu.tr
+)
+.
+ 
+ 
+Higher Order
+ 
+Naïve Bayes: A Novel Non
+-
+IID 
+Approach to Text Classification
+ 
+Murat Can Ganiz
+, 
+Cibin George
+ 
+and William M. Pottenger,
+ 
+Member, IEEE
+ 
+A
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+2
+ 
+data is possible because no additional context is needed to infer class membership 
+[
+3
+]
+.  However, 
+such a context
+-
+free approach does not exploit valuable information about relationships between 
+instances in the dataset 
+[
+4
+]
+. 
+ 
+Recently, a new domain termed 
+link mining
+ 
+has emerged 
+[
+2
+]
+. The focus of the research in this 
+new domain is on datasets of instances that are explicitly linked, for example, by hyperlinks. 
+Datasets with explicit links of this nature have been termed networked data 
+[
+3
+]
+. One of the areas 
+of algorithm research in th
+is domain is link
+-
+based object classification, where the task is to 
+classify instances connected to each other via a set of explicit links of this nature. Such 
+approaches leverage both the attributes contained in the instances and the explicit links betwee
+n 
+instances, making the underlying assumption that labels of the linked objects tend to be 
+correlated. Collective classification algorithms operate on networked data by jointly inferring 
+class labels of a set of instances based on this underlying assumptio
+n. Several classification 
+algorithms of this nature have been proposed that exploit the explicit links between instances 
+(e.g., 
+[
+5
+]
+, 
+[
+6
+]
+,
+ 
+[
+7
+]
+ 
+and 
+[
+8
+]
+). As noted, they utilize class labels of related instances when labeling a 
+test instance and usually reduc
+e classification error compared to flat (i.e., I.I.D.) classifiers. 
+Models built in this way can be thought of as 
+second
+-
+order
+ 
+because explicit links between 
+instances are leveraged during model construction.  Such second
+-
+order connections are based on 
+exp
+licit links between instances such as hyperlinks between web pages, citation links between 
+scientific papers, etc.
+ 
+In this work we focus on the development and analysis of a supervised machine learning 
+algorithm that does not make the I.I.D. assumption, bu
+t instead moves beyond instance 
+boundaries to exploit the latent information in higher
+-
+order co
+-
+occurrence paths 
+between features 
+within datasets. Unlike existing approaches, however, we do not rely on explicit links between 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+3
+ 
+instances when learning a model
+, but rather leverage implicit links. In what follows we define 
+these implicit links.
+ 
+
+-
+
+-
+
+-
+order co
+-
+
+consider 
+Fig.
+ 
+1
+ 
+below (reproduced from 
+[
+9
+]
+). This figure depicts three documents, D1, D2 and D3, each 
+containing two terms, or entities, represented by
+ 
+the letters A, B, C and D. Below the three 
+documents there is a higher
+-
+order path that links entity A with entity D through B and C. This is 
+a third
+-
+
+ 
+ 
+ 
+Fig.
+ 
+1
+.
+ 
+Higher
+-
+order
+ 
+co
+-
+occurrence
+ 
+ 
+A higher
+-
+order path can also be represented as a chain of co
+-
+occurrences of entities (attribute 
+values, words, terms, etc.) in different records (instances, documents, etc.). Actually we can 
+extract co
+-
+occurrence relations from virtually an
+y dataset as long as there is a meaningful context 
+of entities.
+ 
+In general, we are interested in exploiting the latent information in such higher
+-
+order paths. We 
+are motivated by the Latent Semantic Indexing (LSI) algorithm 
+[
+10
+]
+, which is a widely used 
+tec
+hnique in text mining and IR based on singular value decomposition matrix factoring. This 
+approximation reduces the noise and sparsity of the original term
+-
+vector space and partially 
+solves the synonymy problem.  The authors note that the fundamental probl
+em in IR is that 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+4
+ 
+existing methods try to match words of queries with words of documents, but these individual 
+words do not provide reliable evidence for the conceptual content the user is seeking because 
+there are many ways to express a concept and words u
+sually have several meanings. Similar to 
+the I.I.D. assumption in machine learning, in traditional vector
+-
+space models used in IR, 
+documents are assumed to be independent since only documents that include query terms are 
+retrieved and higher
+-
+order relation
+s between words are not considered. However, LSI takes 
+advantage of implicit higher
+-
+order (or latent) structure in the association of terms and documents. 
+For example, 
+[
+9
+]
+ 
+prove
+d
+ 
+mathematically and demonstrate
+d
+ 
+empirically that LSI is based on the 
+use of h
+igher order relations, in particular higher order co
+-
+occurrences. The authors also 
+demonstrate
+d
+ 
+that the retrieval performance of LSI is correlated with higher order relations. 
+Higher
+-
+
+[
+9
+]
+.  Our second motiv
+ation comes from 
+the Statistical Relational Learning domain. The work in this domain focuses on the limitations of 
+the I.I.D. assumption in traditional machine learning and as noted reveals that such a context
+-
+free 
+approach does not exploit the available i
+nformation about relationships between instances in the 
+dataset 
+[
+4
+]
+.
+ 
+Motivated by this prior work, we developed a novel classification algorithm termed 
+HONB 
+that leverages higher
+-
+order paths, which implicitly link instances in a dataset. Unlike approaches 
+that assume instances are I.I.D., 
+HONB
+ 
+leverages implicit co
+-
+occurrence relationships between 
+attributes in different instances. Attributes (e.g., words in d
+ocuments in text collections) are 
+richly connected by such higher
+-
+order paths, and the generative model built by 
+HONB
+ 
+exploits 
+this rich connectivity pattern. 
+ 
+The power of HONB is most visible when we have only a small amount of training data. This 
+is imp
+ortant because, for example, labeling documents by category or class is an expensive 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+5
+ 
+process and in many real world applications the amount of labeled data is far from adequate 
+[
+11
+]
+. 
+In order to demonstrate the utility of this approach we vary the 
+amount
+ 
+o
+f the input (i.e., labeled 
+training data) in our experiments. Our results on several textual datasets show that when training 
+data is 
+scarce
+ 
+(i.e., a small number of labeled instances), 
+HONB
+ 
+significantly reduces the 
+generalization error by leveraging high
+er
+-
+order paths. 
+ 
+In what follows we first discuss background and related work, then present our approach to 
+learning based on higher
+-
+order paths. We follow this with a section summarizing our results for 
+widely
+-
+used text classification datasets. Next we di
+scuss these results including aspects of future 
+work, and finally draw conclusions.
+ 
+II.
+ 
+B
+ACKGROUND AND 
+R
+ELATED 
+W
+ORK
+ 
+A.
+ 
+Higher
+-
+order Co
+-
+occurrences
+ 
+Higher
+-
+order co
+-
+occurrences play a key role in the effectiveness of systems used for 
+information retrieval and text 
+mining. One example is Literature Based Discovery (LBD), which 
+employs second
+-
+order co
+-
+occurrence
+ 
+to discover connections between concepts (entities). A 
+well
+-
+known example is the discovery of a novel migraine
+-
+magnesium connection 
+in the medical 
+domain. 
+In 
+[
+24
+]
+ 
+Swanson 
+found that in the Medline database some terms co
+-
+occur frequently 
+
+
+-
+
+esult, they 
+
+obtained that supports this hypothesis. In LBD a second
+-
+order link of this nature is represented as 
+A
+
+B
+
+
+
+ 
+Another example is Latent Semantic Indexing (LSI), a well
+-
+known approach to information 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+6
+ 
+retrieval. K
+ontostathis and Pottenger [
+9
+]
+ 
+mathematically prove that LSI implicitly depends on 
+higher
+-
+order co
+-
+occurrences. They also demonstrate empirically that higher
+-
+order co
+-
+occurrences 
+play a key role in the effectiveness of systems based on LSI. LSI can reveal hidden or latent 
+relationships
+ 
+among terms, as terms semantically similar lie closer to each other in the LSI vector 
+space. This can be demonstrated using the LSI term
+-
+term co
+-
+occurrence matrix as the following 
+example shows.
+ 
+ 
+Fig.
+ 
+2
+.
+ 
+Example document collecti
+on (Deerwester et al., 1990)
+ 
+ 
+ 
+Fig.
+ 
+3
+.
+ 
+Deerwester Term
+-
+to
+-
+Term Matrix (Adapted from Kontostathis & Pottenger 
+[
+9
+]
+)
+ 
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+7
+ 
+ 
+Fig.
+ 
+4
+.
+ 
+Deerwester Term
+-
+to
+-
+Term matrix truncated to two dimensions (Adapted from 
+Kontostathis & Pottenger 
+[
+9
+]
+)
+ 
+ 
+
+Fig.
+ 
+2
+ 
+where document c1 has the words 
+{human, interface} and c3 has {interface, user}. As can be seen from the co
+-
+occurrence matrix in 
+Fig.
+ 
+3
+
+-
+occur in this example collection. After applying 
+LSI, however, the reduced representation co
+-
+occurrence matrix in 
+Fig.
+ 
+4
+ 
+has a non
+-
+zero entry for 
+
+second
+-
+order co
+-
+occurrence; in other words, there is a second
+-
+
+
+
+-
+order path 
+implicitly links c1 to c3, violating the I.I.D. assumption. The results of experiments reported in 
+[
+9
+]
+ 
+show that there is a strong correlation between second
+-
+order term co
+-
+occurrence, the values 
+produc
+ed by the Singular Value Decomposition (SVD) algorithm used in LSI, and the 
+performance of LSI measured in terms of F
+-
+measure , the harmonic mean of precision and recall. 
+As noted, the authors also provide a mathematical analysis which proves that LSI does
+ 
+in fact 
+depend on higher
+-
+order term co
+-
+occurrence.
+ 
+There are several 
+research efforts
+ 
+that us
+e LSI in text classification [25
+]
+, 
+[
+26
+]
+, 
+[
+27
+]
+, 
+[
+28
+]
+, 
+[
+29
+]
+.
+  
+Although LSI is essentially an unsupervised method, 
+several 
+authors
+ 
+have 
+developed
+ 
+modifications 
+to
+ 
+LSI 
+such that it 
+make
+s
+ 
+use of class labels 
+during
+ 
+training [27
+]
+,
+ 
+[
+28
+]
+,
+ 
+[
+29
+].  
+ 
+Of 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+8
+ 
+these approaches 
+[25
+] is 
+particularly
+ 
+relevant to our work since 
+the focus is also 
+on small training 
+sets. For example for the 20 newsgroups dataset 
+the
+ 
+training set sizes r
+ange from one instance 
+per class to 20 
+instances
+ 
+per class
+ 
+in this work
+. 
+ 
+In addition, the algorithm employs
+ 
+a large 
+number of unlabeled instances to 
+aid in learning
+. 
+The kNN classifier presented
+ 
+in [
+25
+] 
+uses
+ 
+cosine similarity and 
+combines the
+ 
+similarity s
+cores of 
+the 
+30 closest
+-
+neighbors using 
+a 
+noisy
+-
+OR o
+perator.
+ 
+A related 
+issue in LSI is the choice of the 
+truncation 
+parameter k
+, which can be
+ 
+very important 
+for 
+supervised learning 
+syst
+ems based on LSI. Previous work
+ 
+shows that 
+values of k ranging 
+from 100
+ 
+to 300 give
+ 
+the best results [
+25
+]. However, this value is dependent on the size of the 
+corpora. On the other hand, there are m
+
+for the
+ 
+di
+mensionality reduction in LSI, s
+ome of 
+which 
+are discussed in [
+3
+0
+]. 
+Such
+ 
+methods can 
+be used to build 
+an automated LSI
+-
+based classifier which ad
+a
+pts the k value as the training set 
+size changes. 
+ 
+ 
+B.
+ 
+Statistical Relational Learning
+ 
+
+traditionally assume that instances are independent and identically distributed (I.I.D.). As noted, 
+however, this context
+-
+free approach does not exploit the available i
+nformation about 
+relationships between instances in the dataset 
+[
+4
+]
+.  In statistical relational learning, models 
+operate on relational data that includes explicit links between instances (
+e.g., hyperlinks between 
+web pages or citation links between 
+scientific papers
+). These relations provide rich information 
+that can be leveraged to improve classification accuracy because attributes of linked instances 
+are often correlated, and links are more likely to exist between instances that have some 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+9
+ 
+commonali
+ty
+ 
+[
+2
+]
+. Given a set of test instances, relational models simultaneously label all 
+instances in order to exploit the correlations between class labels of related instances. This is also 
+called collective classification (or collective inference), and violate
+s the traditional I.I.D. 
+assumption. Several studies 
+(e.g., 
+[
+5
+]
+, 
+[
+6
+]
+,
+ 
+[
+7
+]
+, and 
+[
+8
+]
+) have shown, however, that by making 
+inferences about multiple data instances simultaneously, classification error can be significantly 
+reduced 
+[
+12
+]
+.
+ 
+ 
+In related work, Macsk
+assy and Provost 
+[
+3
+]
+ 
+formulate linked data as networked data and 
+classify machine learning methods for networked data into two categories; within
+-
+network 
+inference and across
+-
+network inference. Networked data is relational data where instances are 
+intercon
+nected such as web
+-
+pages or research papers. In our case, however, the dataset does not 
+have to be innately relational. We extract relational information (i.e., links) from a standard 
+machine learning dataset by using higher
+-
+order co
+-
+occurrences. These lin
+ks are called higher
+-
+order paths. Each such higher
+-
+order path implies a relation between different records (instances).
+ 
+ 
+C.
+ 
+Naïve Bayes
+ 
+ 
+Naïve Bayes is a very popular algorithm due to its simplicity and efficiency, especially in the 
+text mining domain. The pr
+imary reason for its simplicity and efficiency is the attribute 
+independence assumption. Although Naïve Bayes assumes that attributes are independent, it 
+nonetheless performs well in numerous domains, including on real world datasets. A detailed 
+analysis o
+f Naïve Bayes can be found in 
+[
+13
+]
+. There has been a focused effort, however, to relax 
+
+efficiency. Two techniques that exemplify this effort are Lazy Bayesian Rules (LBR) and Super
+-
+Parent TAN (SP
+-
+TA
+N). Both of these techniques have achieved remarkable accuracies, but at the 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+10
+ 
+cost of high computational overhead. SP
+-
+TAN, for example, has high computational complexity 
+at training time and LBR has high computational complexity at classification time. The 
+complexity of such approaches detracts from their usefulness as alternatives to Naïve Bayes 
+[
+14
+]
+. 
+A detailed analysis of these approaches can be found in 
+[
+14
+]
+.
+ 
+III.
+ 
+E
+NUMERATION OF 
+H
+IGHER
+-
+ORDER 
+P
+ATHS
+ 
+We focus on discovering higher
+-
+order association patterns in a
+ 
+labeled machine learning 
+dataset based on relations between items, or entities. Entities can be attribute
+-
+value pairs in a 
+standard machine learning dataset, words in a textual dataset, etc. A higher
+-
+order association is 
+represented as a chain of co
+-
+occur
+rences of such entities in different instances. As noted we also 
+refer to such associations as higher
+-
+order paths. Given a supervised learning dataset (i.e., labeled 
+training data), we attempt to discover patterns in sets of higher
+-
+order associations that 
+distinguish 
+between the classes in the labeled data. In order to accomplish this we first need to enumerate all 
+higher
+-
+order paths in a given class of instances. In this section we present our definitions for 
+higher
+-
+order paths and data structures to repre
+sent and enumerate them. In the following section 
+we present a theoretical framework for the closed
+-
+form (analytical) enumeration of higher
+-
+order 
+paths.
+ 
+Our definition of a higher
+-
+order path is similar to that found in graph theory, which states that 
+given
+ 
+a non
+-
+empty graph G = (V, E) of the form 
+V = {x
+0
+, x
+1
+
+k
+}, E = {
+x
+0
+x
+1
+, x
+1
+x
+2
+
+k
+-
+1
+x
+k
+} 
+with nodes x
+i
+ 
+distinct, two vertices x
+i
+ 
+and x
+k
+ 
+are linked by a path P where the number of edges in 
+P is its length. Such a path is often referred to by the natural 
+sequence of its vertices x
+0
+x
+1
+
+k
+ 
+[
+15
+]
+. Our definition of a higher
+-
+order path differs from this in a couple of respects. First, vertices 
+V = {e
+0
+, e
+1
+
+k
+} represent entities, and edges E = {r
+0
+, r
+1
+
+m
+} represent records, documents 
+or instances. Finally and most importantly, in a higher
+-
+order path both vertices and edges must 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+11
+ 
+be distinct. We are interested in enumerating all such paths.
+ 
+ 
+It is not straightforward, however, to represent higher
+-
+order path
+s in conventional graph 
+structures. In order to use conventional
+ 
+graph structures and algorithms, we divided the above 
+representation into two structures. First, we form a co
+-
+occurrence graph
+ 
+G
+c
+ 
+= (V, E) in which the 
+vertices are the entities and there is 
+an edge between two entities if they co
+-
+occur in one or more 
+
+c
+ 
+satisfies the first requirement of our higher
+-
+order 
+path definition since the vertices in this path are distinct. The second requirement entails tha
+t 
+records on a path must be distinct, and another data structure that contains lists of records for 
+each edge is needed. We term this structure a 
+path group
+. Note that the second requirement 
+results in more intuitive paths. For example
+,
+ 
+with Latent Semanti
+c Indexing (LSI) in view 
+the 
+latent 
+semantics of e
+1
+~R
+1
+~e
+2
+~R
+2
+~e
+3
+ 
+is more clear than e
+1
+~R
+1
+~e
+2
+~R
+1
+~e
+3
+. We are interested in 
+paths
+ 
+of this nature
+ 
+that implicitly
+ 
+link
+ 
+entities through 
+different records because they have the 
+potential to reveal latent informatio
+n. 
+ 
+As noted previously, such implicit links between records 
+violate the I.I.D. assumption typically made in traditional machine learning algorithms.
+ 
+ 
+However, we are not necessarily looking for the shortest paths between two entities. In the 
+second order 
+path between e1 
+and e3 in 
+Fig
+.
+ 
+5 
+below,
+ 
+there is a shorter (first
+-
+order) path between 
+e1 and e3 as well.  
+Although we
+ 
+use particular order paths (e.g., only 
+second
+-
+order or only 
+third
+-
+order) in our algorithms, given our definition of a higher
+-
+order path we enumerate many more 
+higher
+-
+order paths than just the shortest paths. These higher
+-
+order paths include latent 
+connection information for number of 
+different records
+.
+ 
+ 
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+12
+ 
+ 
+ 
+ 
+Fig. 6
+: Extracting/enumerating higher
+-
+order paths from path group structure
+ 
+Using the path group representation it is 
+possible to satisfy the second requirement of our 
+higher
+-
+order path definition. In effect, we need to identify the systems of distinct representatives 
+(SDRs) from the sets of records in a path group. An SDR of the sets S
+0
+
+n
+-
+1 
+is defined as a 
+sequence 
+of n distinct elements r
+0
+
+n
+-
+1
+ 
+with r
+i
+S
+i
+
+-
+1 
+[
+16
+]
+. Each distinct 
+representative corresponds to a record in a higher order path. In order to enumerate all the 
+distinct representatives in a given higher
+-
+order path, a bipartite graph G
+b
+ 
+= (V
+1
+ 
+U 
+V
+2
+, E) is 
+formed such that V
+1
+ 
+represents the sets of records (S
+0
+, S
+1
+,
+ 
+
+2
+ 
+Fig. 5
+: Path
+ 
+Group structure based on a simple path in co
+-
+occurrence graph
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+13
+ 
+represents the records themselves. A maximum matching with cardinality |V1| in this bipartite 
+graph yields the SDR for a single higher
+-
+order path. All pos
+sible maximum matchings in the 
+bipartite graph together comprise all the SDRs for all higher
+-
+order paths in the path group. This 
+process is summarized 
+in 
+Fig. 
+5
+ 
+and
+ 
+Fig. 
+6
+. In
+ 
+Fig. 
+5 
+we can see an example of the 
+second
+-
+order 
+path group (e
+1
+-
+{1,2,5}
+-
+e
+2
+-
+{1,2,3,4}
+-
+e
+3
+) that is extracted from the co
+-
+occurrence graph G
+c
+. This 
+particular 
+second
+-
+order path group includes two sets of records: S
+0
+={1,2,5} and S
+1
+={1,2,3,4}. S
+0
+ 
+corresponds to the records in which e
+1
+ 
+and e
+2
+ 
+co
+-
+occur, and S
+1
+ 
+is the set of records in 
+which e
+2
+ 
+and e
+3
+ 
+co
+-
+occur. As noted, the path group may be composed of several higher
+-
+order paths. In
+ 
+Fig. 
+6
+, a bipartite graph G
+b
+ 
+= (V
+1
+ 
+U V
+2
+, E) is formed where V
+1
+ 
+represents the two sets of records and 
+V
+2
+ 
+represents all records in these sets. Enumerating all maximum matchings in this graph yields 
+all higher
+-
+order paths in the path group. The second diagram (depicted in
+ 
+Fig. 6
+)
+ 
+shows two 
+examples of the many paths in this path group. In the first such path,
+ 
+edge labels r
+1
+ 
+and r
+3
+ 
+are 
+records in S
+0
+ 
+and S
+1
+, and the path corresponds to maximum matching in the bipartite graph.
+ 
+Although this framework gives us the ability to algorithmically enumerate higher
+-
+order paths 
+of any length, in fact
+ 
+we have developed clos
+ed forms for 
+enumerating
+ 
+the systems of distinct 
+representatives
+ 
+of record sets in 
+second, third and fourth
+-
+order path groups. Our approach is 
+motivated by the inclusion
+-
+exclusion principle in set theory 
+[
+16
+]
+.
+ 
+Definition 1: An SDR of the sets S
+0
+
+n
+-
+1 
+is defined as a sequence of n distinct elements r
+0
+, 
+
+n
+-
+1
+ 
+with r
+i
+S
+i
+
+-
+1 
+[
+16
+]
+ 
+As noted we wish to discover all of the systems of distinct representatives of n sets. This 
+requires that we enumerate all possible combinations of 
+n
+ 
+distinct records,
+ 
+each coming from one 
+of these 
+n
+ 
+sets.  Motivated by the inclusion
+-
+exclusion principle, we have proven three theorems 
+stating formulas for calculating the number of systems of distinct representatives of two, three 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+14
+ 
+and four sets respectively. Note that in 
+
+systems (plural) of distinct representatives (i.e., one or more higher
+-
+order paths).
+ 
+Theorem 1: The number of SDRs for two sets 
+
+
+and 
+
+
+ 
+is: 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+where 
+
+
+
+
+
+
+
+
+
+
+
+ 
+Proof of Theorem 1:
+ 
+E
+ach term 
+can be represented 
+by a pa
+rtition of 
+two which is shown as 
+
+f
+irst term represents and counts all sequences of representatives from 
+
+
+ 
+and 
+
+
+ 
+by multiplying 
+the number of elements 
+in 
+each
+. In the simplest case consider that we have two disjoint sets 
+
+
+ 
+and 
+
+
+,
+ 
+and  
+
+
+
+
+
+
+
+. Since there are no intersections, an element from 
+
+
+ 
+can be combined 
+with any element in 
+
+
+ 
+to form a system of representatives and all the representatives
+ 
+in all the 
+systems will be distinct. However, if  
+
+
+
+
+
+
+
+ 
+then the elements in the intersection can 
+represent both 
+
+
+ 
+and 
+
+
+ 
+because they belong to both sets. In this case it is possible to have a 
+sequence with repeated or non
+-
+distinct representatives
+. This obviously violates the definition of a 
+SDR and needs to be excluded from the total count. This kind of exception will occur for all 
+elements in the intersection. Therefore we need to subtract the number of elements in the 
+intersection
+,
+ 
+which corresp
+onds to the second term
+ 
+in the closed
+-
+form formula.
+ 
+Theorem 2: The number of SDRs for three sets 
+
+
+, 
+
+
+, and 
+
+
+ 
+is: 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Proof of Theorem 2:
+ 
+For three sets 
+the proof is more involved. A SDR of these sets consists of three distinct 
+representatives. This time we ha
+ve three sets and we refer to the 
+term
+s
+ 
+using
+ 
+a partition of 
+three
+: 
+
+ 
+elements in the 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+15
+ 
+sets. There are 
+a 
+total 
+of
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+of these sequences. Then in the 
+second term we subtract the cases where two or more representatives are non
+-
+distinct or 
+identical. In this step we are considering th
+e two set intersections and since we have three sets 
+there are 
+C(3,2)=3
+ 
+combinations of them. For the sequences where all three elements are 
+identical, we count them once 
+in the first term and subtract them
+ 
+three times in the second term. 
+As a result we ne
+ed 
+to add twice the number of these
+ 
+sequences back in to the sum to 
+compensate for over counting.
+ 
+Theorem 3: The number of SDRs for 
+four
+ 
+sets  
+
+
+, 
+
+
+, 
+
+
+, and 
+
+
+  
+is:
+ 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Proof of Theorem 3:
+ 
+We refer 
+to 
+all possible sequence patterns by a partition of 
+size 
+
+
+ 
+
+sequences obviously its coefficient will be one. 
+In
+ 
+
+intersections which produce sequences with two or more non
+-
+distinct representatives. As with 
+the previous 
+theorem, 
+the 
+
+intersections that produce three or more non
+-
+
+back into the sum in 
+the 
+
+two different 
+
+
+four set intersection which produce
+s
+ 
+sequences with four non
+-
+distinct representatives
+ 
+which 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+16
+ 
+occur
+ 
+once in every summand of the previous terms
+.
+ 
+This
+ 
+means 
+the formula
+ 
+is 
+too large
+ 
+by  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+ 
+These closed
+-
+form formulas (Theorems 1, 2 and 3) are used in enumerating the 
+second, third 
+and fourth
+-
+order paths in the path group struc
+tures exemplified in 
+Fig.
+ 
+6 above. 
+When it is 
+necessary to enumerate paths of order greater than four, we use the 
+algorithmic 
+approach 
+outlined 
+previously
+ 
+to enumerate all maximum matchings in the bipartite graph.
+ 
+IV.
+ 
+H
+IGHER 
+ORDER 
+N
+AÏVE 
+B
+AYES
+ 
+ 
+Our approach is 
+based on a Naïve Bayes algorithm that is applied to the problem of text 
+classification. Naïve
+ 
+Bayes is commonly used in text classification because it is fast and easy to 
+implement. Naïve Bayes is the simplest of Bayesian classifiers in that it assumes tha
+t all 
+attributes of the examples are independent of each other given the context of the class 
+[
+17
+]
+. 
+Although this assumption does not hold for most real
+-
+world datasets, overall Naïve Bayes 
+performs fairly well. In our case the relative simplicity of the Na
+ïve Bayes classifier allows for 
+detailed analysis of the effect of using higher
+-
+order paths.
+ 
+It is important to note that the focus in this work is on the independence assumption between 
+instances. Per the definition in the previous section, higher
+-
+order p
+aths link attributes from 
+different instances thereby implicitly linking different instances. In this way we violate the I.I.D. 
+assumption on instances.  For this reason our approach is similar to the work in link mining that 
+leverages explicit links betwe
+en instances during training. We 
+do not
+, however, modify the 
+Naïve Bayes algorithm to relax its assumption of independence between attributes. (As noted in 
+the Background and Related Work section, this latter approach is taken in work such as 
+[
+14
+]
+.)  In 
+contrast, in our framework although priors for Naïve Bayes are estimated from higher
+-
+order 
+paths we do not alter the Naïve Bayes algorithm itself. That is why we name our approach 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+17
+ 
+Higher Order
+ 
+Naïve Bayes (HONB).
+ 
+Naïve Bayes assumes that a document 
+is generated by a parametric model. We use training 
+data to calculate estimates of model parameters. By using these estimates with Bayes rule we can 
+calculate the probability that a class generated a given test document. We classify the document 
+in the mos
+t probable class in the usual way. 
+ 
+There are two different generative models commonly used for Naïve Bayes classification, the 
+multivariate Bernoulli model and the multinomial model. A multinomial model is a unigram 
+language model with integer term counts
+ 
+[
+17
+]
+. In this research we implemented a multivariate 
+Bernoulli model (also known as a binary independence Naïve Bayes model). In this model an 
+event is a document and is represented by a vector of binary attributes 
+X
+1
+
+ 
+X
+d
+, which take 
+values {0,1} indica
+ting occurrence of terms in the document. The number of times a term occurs 
+in a document is not captured.  
+X
+0 
+represents the class label of the document and takes values in 
+
+C
+} where C is the number of classes.
+ 
+One can calculate the probability of an 
+event (i.e., a document) given the probability of a 
+document 
+d
+ 
+belonging to class 
+C
+ 
+using Bayes rule as follows:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+In a multiclass classification scenario, one assigns document 
+d
+ 
+to the class with the highest 
+P(c|d).
+ 
+In addition, since 
+P(d) 
+is independent of the class it is not needed during classification 
+and we have: 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+A document consists of words
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+}
+. Here we can understand the document to 
+
+[
+17
+]
+. The Naïve 
+Bayes algorithm assumes that each word in a document is independent of others and independent 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+18
+ 
+of its position in the
+ 
+document. As a result, when calculating the probability of a document, the 
+product of the probabilities of all the attribute values, including the probability of non
+-
+occurrence 
+for terms that do not occur in the document, is taken: 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+However, during classification performance is improved by not calculating the second product 
+for each test document 
+[
+18
+]
+, so the equation is rewritten as:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Here the sec
+ond product is pre
+-
+computed and stored for each class. 
+ 
+To estimate a class probability of a document 
+p(c|d)
+, the priors must be estimated from labeled 
+training documents. Probabilities of all words in class 
+c
+ 
+are estimated by:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+where 
+n(c,w)
+ 
+is the  number of documents in class 
+c
+ 
+including word 
+w 
+as in Equation [
+6
+]
+ 
+and 
+n(c,d)
+ 
+is the total number of documents in class 
+c
+.
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Another parameter of the system is the class prior probability, which is 
+estimated using 
+Maximum Likelihood Estimation (MLE) as follows:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+ 
+In 
+Higher Order
+ 
+Naïve Bayes we form a co
+-
+occurrence graph for each class of labeled training 
+documents and enumerate specific higher
+-
+order (e.g., second
+-
+orde
+r) paths. Our system 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+19
+ 
+parameters are the same as in the traditional multivariate Naïve Bayes model; however we 
+estimate the parameters using the higher
+-
+order paths instead of documents. Similarly, 
+probabilities of all words in class 
+c
+ 
+are estimated by:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+where 
+
+ 
+is the number of higher
+-
+order paths in class 
+c
+ 
+including word 
+w 
+as in Equation 9, 
+and 
+
+(c,h
+)
+ 
+is the total number of higher
+-
+order paths in class 
+c
+.
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+The class prior is estimated by dividing the number of higher
+-
+order paths in class 
+c
+ 
+by the sum 
+of the higher
+-
+order paths in all classes as shown in Equation 10: 
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+Finally, by using the parameter estimates described above, 
+we can estimate the class 
+probability of a test document using:
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+By using the same parameters 
+
+ 
+e.g., words 
+
+ 
+Higher Order
+ 
+Naïve Bayes has the advantage that 
+(just like Naïve Bayes) a singl
+e test instance can be classified without the need for additional 
+context or a mapping function.  However, by using higher
+-
+order paths instead of documents we 
+also exploit the latent connections between documents within a given class.
+ 
+For both Naïve 
+Bayes 
+and 
+Higher Order
+ 
+Naïve Bayes, we employ Laplace smoothing to avoid zero probabilities. 
+ 
+As noted above, although we do not assume that documents are I.I.D. during model 
+
+attributes
+ 
+are independent from each 
+other during classification be
+cause we are using Naïve Bayes.
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+20
+ 
+For all the experiments reported in this article we used second
+-
+order paths. This choice was 
+based on the empirical observation that although models built from third
+-
+o
+rder paths show the 
+same pattern of performance, the performance for second
+-
+order paths is slightly better. As noted 
+previously a second
+-
+order path connects three different words (or entities) in two different 
+documents (or records).  For example, w
+1
+~D
+x
+~w
+2
+~D
+y
+~w
+3 
+.
+ 
+A.
+ 
+Complexity Analysis
+ 
+During training, Naïve Bayes (NB) assembles a simple table of class probability estimates and 
+a table of conditional attribute value probability estimates for each class. Therefore the space 
+complexity is 
+O(
+c
+nv
+)
+, where 
+c
+ 
+is the
+ 
+number of classes, 
+n
+ 
+is the number of attributes, and 
+v
+ 
+is the 
+average number of values per attribute 
+[
+14
+]
+. In
+ 
+the case of text classification, the number of 
+attribute values corresponds to the word dictionary size in both the multinomial and multivariate 
+Naïve Bayesian models. As a result the space complexity can be defined as 
+O(
+c
+d)
+ 
+where 
+d
+ 
+is the 
+dictionary size.
+ 
+Attribute value conditional probability estimates can be calculated by a simple 
+scan through the data; thus the time complexity of the learning phase is 
+O(td)
+, where 
+t
+ 
+is the 
+number of training examples and 
+d 
+is the dictionary size. During classification,
+ 
+classifying a 
+single instance has time complexity 
+O(
+c
+d)
+ 
+using the tables formed during training.
+ 
+ 
+During training with 
+Higher Order
+ 
+Naïve Bayes we first need to enumerate second
+-
+order 
+paths before calculating probability estimates. As mentioned before, fo
+r each class in 
+k
+ 
+classes 
+we first form a co
+-
+occurrence graph and then enumerate all length two paths from this graph. All 
+length two paths in a graph can be enumerated in time 
+O(n
+3
+)
+ 
+
+of 
+O(n
+2
+)
+ 
+for the
+ 
+number of paths of le
+ngth two 
+[
+19
+]
+1
+)
+ 
+where 
+n
+ 
+is the number of nodes (words) in 
+the co
+-
+occurrence graph of the words in the documents in a given class, and is bounded by 
+d
+. 
+ 
+1
+An intuition for the 
+O(n
+(P+1)
+)
+ 
+bound
+ 
+for paths of length P can be seen by comparison to the ge
+neration of a tree for 
+path traversal. The number 
+of children formed 
+is
+ 
+the total number of
+ 
+paths generated.
+ 
+Such a tree has
+ 
+a fan out of (
+n
+-
+1) at the first step (in the worst
+ 
+case of a clique, meaning 
+a node can generate a path to every other
+ 
+node excludi
+ng itself)
+,
+ 
+n
+-
+2
+ 
+at the second step 
+(excluding itself and the first vertex) and
+ 
+so on 
+down to 
+one
+ 
+for paths of all lengths
+ 
+up to P
+. Therefore 
+the 
+total number of
+ 
+children is 
+n
+-
+1 * 
+n
+-
+2 * ...
+ 
+*
+ 
+n
+-
+P
+, yielding
+ 
+O(n
+P
+)
+ 
+complexity for each of 
+n 
+vertices
+.
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+21
+ 
+After this step we form path groups based on each of these paths. We enumerate higher
+-
+order 
+paths from th
+e path groups using a closed
+-
+form formula which in the worst case has time 
+complexity 
+O(u log(r))
+ 
+where 
+u
+ 
+and 
+r
+ 
+are the set sizes, both of which are bounded by 
+t
+, the 
+number of training examples (see Fig
+.
+ 
+5
+ 
+and 
+6
+).  In our work with small samples of training data 
+in text classification, 
+t 
+<< 
+d
+. We saw previously
+ 
+that there are 
+O(n
+2
+) 
+path groups, yielding a 
+worst
+-
+case time complexity of 
+O(t log(t) n
+2
+) 
+for path enumeration.
+ 
+In addition we saw that the 
+time complexit
+y of training for Naïve Bayes is 
+O(td)
+, where 
+d 
+is equivalent to 
+n 
+in the worst case 
+(when the documents in a class have the entire dictionary in them)
+. 
+As a result, during training 
+HONB has an overall worst
+-
+case time complexity of 
+O(
+c
+n
+3
+) 
+where 
+c
+ 
+is the nu
+mber of classes and 
+as noted 
+n 
+is bounded by 
+d
+. This compares favorably with the time complexity for training in SP
+-
+TAN as well as the time complexity for classification in LBR, both of which require 
+O(tkn
+3
+)
+ 
+where 
+t 
+is the number of training examples, 
+c
+ 
+as
+ 
+before 
+is the number of classes and 
+n 
+is the 
+number of attributes (equivalent to the number of words in the dictionary of size 
+d 
+in a text 
+classification application) 
+[
+14
+]
+.
+ 
+In terms of space complexity, the only difference between HONB and NB is that in HONB we 
+need to store the co
+-
+occurrence graph (e.g., as an adjacency list). In the worst case for a complete 
+graph, we have 
+O(d
+2
+/2)
+ 
+additional space complexity
+ 
+since this is a
+ 
+undirected graph
+
+need to store higher
+-
+order paths themselves since the attribute value statistics can be updated 
+while enumerating paths. Finally, the time complexity of HONB is exactly the same as NB in the 
+classification phase, which is 
+O(
+c
+d)
+.
+ 
+V.
+ 
+E
+XPERIMENTS
+ 
+A.
+ 
+Comparing HONB with  
+Traditional 
+Classifiers
+ 
+In this section we present the results and analysis of our experiments comparing 
+Higher Order
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+22
+ 
+Naïve Bayes (HONB) with three 
+traditional 
+classifiers, Naïve Bayes (NB), 
+Support Vector 
+Machines (SVM)
+ 
+and an LSI
+-
+based kNN classifier
+ 
+(LSI kNN)
+.  
+NB is our baseline classifier. 
+As 
+stated by Chakrabarti 
+[
+18
+]
+ 
+
+kind of classifier has been known to outperform it across the board over a large num
+ber of 
+
+Therefore, 
+we included SVM in our experiments as the state
+-
+of
+-
+the
+-
+art classifier in genera
+l in text 
+classification domain.
+ 
+In addition to 
+SVM
+ 
+we also included 
+an LSI
+-
+based k
+-
+N
+earest 
+Neighborhood
+ 
+(kNN)
+ 
+classifier since 
+in our prior work we proved 
+that LSI 
+implicitly
+ 
+uses 
+higher
+-
+order co
+-
+occurrence paths
+ 
+[9]
+. 
+Both 
+SVM and LSI
+-
+based kNN classifiers 
+were
+ 
+optimized 
+to 
+achieve the
+ 
+best performance on our datasets.
+ 
+Experiment
+s were done using second
+-
+order 
+paths for HONB. We have conducted additional experiments using third
+-
+order paths, but the 
+results did not differ significantly. Therefore, 
+given
+ 
+the 
+lower execution time of second
+-
+order 
+path enumeration, we
+ 
+chose to use secon
+d
+-
+order paths. 
+ 
+For the experiments in this section we 
+used four subsets of the 20 Newsgroups dataset that are also used in related work using word 
+clusters for text classification (e.g., 
+[
+11
+]
+)
+. This 
+related 
+work 
+is also
+ 
+focused on improving the 
+efficiency
+ 
+of the classifiers when the training data is scarce
+, and these datasets provide
+ 
+a
+n
+ 
+appropriate platform to 
+demonstrate
+ 
+the usefulness of our algorithm. 
+The description of the
+se
+ 
+datasets is given in 
+Table 
+1
+. The 20 Newsgroups dataset is a collection of approximately 20,000 
+newsgroup documents, partitioned evenly across 20 different newsgroups. It is a commonly used 
+benchmark dataset for text cla
+ssification. We used the 18828 version of the dataset which has 
+cross
+-
+
+headers
+2
+. The dataset was preprocessed using the Text Mining Infrastructure (TMI) 
+[
+20
+]
+. We 
+used the
+ 
+stemmer and stop word list embedded in the TMI, and filtered words that occurred in 
+ 
+2
+ 
+http://people.csail.mit.edu/jrennie/20Newsgroups/
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+23
+ 
+less than three documents. Furthermore, for comparison purposes we employed Information 
+Gain (IG) to rank the words in the dictionary and select the top
+-
+ranked 2000 words 
+for each 
+subset. 
+ 
+To observe the 
+scalability
+ 
+of HONB we 
+also 
+conduct
+ed
+ 
+experiments on 
+several 
+additional 
+datasets:  
+C
+ora
+ 
+[
+21
+]
+, Citeseer
+ 
+[
+23
+]
+ 
+and 
+WebKB 
+[
+22
+]
+. For Cora
+, Citeseer
+ 
+and WebKB, 
+we downloaded
+3
+ 
+and used the same processed versions of these datasets that were used in the 
+experiments reported in 
+[
+23
+]
+. The Cora dataset is composed of a number of scholarly research 
+articles on machine learning, in all comprising seven classes: Case Based, Genetic Al
+gorithms, 
+Neural Networks, Probabilistic Methods, Reinforcement Learning, Rule Learning and Theory. 
+In 
+[
+23
+] 
+Sen and Getoor chose documents such that each document is either cited or cites one of the 
+other documents in the corpus. Stop words were removed, a
+nd words with document frequency 
+less than 10 were also removed. The final corpus contains 2708 documents with a vocabulary of 
+1433 distinct words and 5429 links. 
+Similarly, 
+the 
+Cite
+seer dataset 
+is composed of a number of 
+scholarly research articles
+ 
+from c
+ompu
+ter science domain and contains 
+3312 doc
+uments with a 
+vocabulary of 3703 terms.
+ 
+The WebKB dataset is a hypertext dataset consisting of the web pages 
+of the computer science departments of four different universities. There are five classes: Course, 
+Stu
+dent, Faculty, Project and Staff. Sen 
+and 
+Getoor 
+[
+23
+]
+ 
+selected only those documents which 
+either link to or are linked by at least one other document in the dataset and extracted a corpus of 
+877 documents. After stemming and stop word removal the dictionar
+y size is 1703 distinct 
+words, and there are 1608 links in this corpus.
+ 
+Table 
+1
+: 
+Datasets used in 
+Experiments
+ 
+Dataset
+ 
+Class Names
+ 
+COMP (5)
+ 
+comp.graphics, comp.window.x, comp.sys.mac.harware, 
+comp.os.ms
+-
+windows.misc, 
+comp.sys.ibm.pc.harware
+ 
+SCIENCE (4)
+ 
+sci.crypt, sci.electronics, sci.med, sci.space
+ 
+POLITICS (3)
+ 
+talk.politics.mideast, talk.politics.guns, talk.politics.misc
+ 
+RELIGION (3)
+ 
+alt.atheism, talk.religion.misc, soc.religion.christian
+ 
+ 
+3
+ 
+http://www.cs.umd.edu/~sen/lbc
+-
+proj/LBC.html
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+24
+ 
+Citeseer (
+6
+)
+ 
+AI, Agents, 
+DB, HCI, IR, ML
+ 
+Cora (6)
+ 
+Case Based, Genetic Algorithms, Neural Networks, Probabilistic
+ 
+Methods, Reinforcement Learning, Theory
+ 
+WebKB (5)
+ 
+Student,
+ 
+Faculty,
+ 
+Course,
+ 
+Project,
+ 
+Staff
+ 
+ 
+As mentioned we compare our results to those from 
+three 
+different 
+traditional 
+classifiers, Naïve 
+Bayes
+, LSI kNN
+ 
+and SVM. 
+All our 
+datasets have binary word features which indicate only the 
+occurrence or non
+-
+occurrence of a word in a document. 
+We
+ 
+employ
+ed
+ 
+a Multivariate Binary 
+event model in a Naïve Bayesian
+ 
+framework as d
+escribed above. T
+he 
+SVM classifier we 
+use
+d is 
+implemented in the R statistical toolkit [31] in package e1071, which is the 
+R interface to the 
+libsvm
+ 
+library [32]. For the 
+comparison to SVM, we 
+optimized 
+parameters
+ 
+to obtain 
+the 
+best 
+possible result
+ 
+includi
+ng a range of experiments with different kernels (
+e.g., polynomial, 
+radial 
+basis function
+). In addition, when
+ 
+selecting the value of the soft margin cost parameter C for 
+SVM, we considered
+ 
+the set 
+{10
+-
+4
+, 10
+-
+3
+
+4
+}
+ 
+of possible values. On every trial, we picked the 
+smallest
+ 
+value of C which resulted in the highest accuracy obtained on the training set.
+ 
+During 
+optimization
+ 
+of the parameters for the SVM runs we observed that the 
+C
+-
+values were mostly 
+10
+-
+4
+ 
+and 10
+-
+3
+, and 
+the 
+RBF kernel performed 
+the 
+best about 60% of the time
+.
+ 
+For 
+the 
+LSI kNN classifier, 
+based on the related work in [
+25
+] 
+we used 
+the 
+25 nearest neighbors 
+combined using 
+the 
+noisy
+-
+OR operator and cosine similarity
+. The
+ 
+LSI kNN classifier 
+we 
+employed is
+ 
+implemented 
+in the
+ 
+LSA
+ 
+package
+, also
+ 
+in 
+the 
+R statistical 
+toolkit
+. 
+ 
+The truncation 
+parameter 
+k of LSI 
+can be set using various recommender routines
+ 
+in this package. 
+Similar
+ 
+to 
+SVM we optimized the LSI kNN classifier by choosing the best performing recomme
+nder 
+routine in this package
+, which was
+ 
+based on 
+Kaiser
+-
+Criterium
+ 
+that retains the singular values 
+larger than 1.0.
+ 
+In order to simulate 
+a 
+real world scenario where only a few labeled data instances are 
+available
+,
+ 
+in this set of experiments 
+w
+e 
+selected
+ 
+5% 
+of the data for training 
+from each dataset
+. In 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+25
+ 
+the 20 N
+ewsgroups subsets
+, 5% corresponds to 25 documents per class. The 
+remaining 
+475 
+documents per class 
+were used 
+as our test set. 
+ 
+The other
+ 
+datasets, 
+h
+owever, 
+do
+ 
+not have 
+an 
+equal 
+number of documents in 
+each class
+ 
+so the number of instances 
+selected varied
+ 
+depending on the 
+distribution of instances
+. 
+In all experiments w
+e conducted eight random trials and average
+d
+ 
+the 
+results over these 
+trials. The
+ 
+detailed results are depicted in 
+Table 
+2
+.
+ 
+The performance is 
+presented in terms of accuracy, and the number of classes per dataset is given in parentheses in 
+the first column. 
+Additionally, 
+ 
+the largest 
+absol
+ute performance is highlighted in bold.  Percent 
+improvements are statistically significant at the five percent level unless marked in red
+ 
+italics
+, in 
+which case the performance difference is not statistically significant.
+ 
+For all datasets
+, 
+HONB 
+significantly outperformed
+ 
+the
+ 
+baseline NB
+ 
+classifier
+. 
+T
+he 
+performance of HONB is most visible
+ 
+on the 20 Newsgroups datasets
+. 
+On
+ 
+these datasets HONB 
+outperforms all the other classifier
+s
+ 
+including state
+-
+of
+-
+the
+-
+art SVM and LSI kNN. 
+ 
+The 
+i
+mprovement of HONB 
+over SVM is statistically signific
+ant for these 20 N
+ewsgroups datasets
+. 
+Similarly, HONB performs 
+statistically significant
+ly better
+ 
+than
+ 
+LSI kNN 
+on three of the four 
+datasets
+. 
+Nonetheless
+, fo
+r the
+ 
+C
+iteseer
+,
+ 
+Cora
+ 
+and WebKB 
+dataset
+s, SVM
+ 
+is the best performi
+ng 
+classifier
+. However, the difference 
+in performance 
+between SVM and HONB on 
+the 
+WebKB 
+dataset is not statistically significant. Additionally, HONB statistically significantly outperforms 
+LSI kNN 
+on both the 
+Cora and WebKB datasets.
+ 
+These results suggest 
+that under the conditions 
+where training data is scarce
+, HONB is a 
+significantly 
+better
+ 
+classifier than NB
+. In addition,
+ 
+for five out of 
+seven
+ 
+of these datasets 
+HONB
+ 
+is 
+comparable or better than 
+SVM
+,
+ 
+which is as noted 
+one of the best performing algorithms 
+for 
+text classification
+. Finally,
+ 
+for six of the seven datasets 
+HONB is
+ 
+comparable 
+or better 
+than 
+LSI 
+kNN.
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+26
+ 
+ 
+We 
+contend
+ 
+that the main reason behind the 
+superior 
+performance of HONB is 
+that it makes
+ 
+explicit 
+use of the 
+most valuable 
+latent 
+information
+ 
+that e
+xists in higher
+-
+order paths. 
+Just as prior 
+research revealed for L
+SI
+ 
+[
+9
+]
+, higher
+-
+order paths provide additional latent information.
+ 
+Unlike 
+LSI, however, HONB explicitly leverages 
+this
+ 
+higher
+-
+order information. 
+This in fact was one of 
+the motivating purposes for our research 
+
+ 
+from our prior work we knew LSI leveraged higher
+-
+
+
+represent
+ 
+a signific
+ant step forward in answering this question.
+ 
+ 
+In 
+summary, in 
+the
+ 
+case of text classification documents and words in a document set are 
+richly connected by such higher
+-
+order paths. Higher
+-
+order paths 
+as noted 
+go 
+beyond 
+instance 
+boundaries. 
+ 
+In contrast,
+ 
+tra
+ditional 
+classifiers only leverage relationships between attributes 
+within instances
+ 
+(e.g.
+,
+ 
+words within documents)
+, or, as with the case of LSI kNN, are a black
+-
+box 
+in terms of how they leverage latent information
+. When 
+training
+ 
+data is 
+scarce
+, 
+these
+ 
+appr
+oach
+es
+ 
+do not
+ 
+exploit sufficient information from in
+dividual instances and thus do
+ 
+not obtain reliable 
+parameter estimates. In contrast, HONB 
+explicitly 
+exploits the rich connectivity between words 
+in different documents that belong to a given class. Conse
+quently, HONB is able to obtain better 
+paramete
+r estimates and performs better.
+ 
+Table 
+2
+: Comparison of HONB with 
+T
+raditional Classifiers
+ 
+on 5% Training Data Samples
+ 
+ 
+Accuracy
+ 
+%
+ 
+% improvement of HONB
+ 
+Dataset
+ 
+NB
+ 
+SVM
+ 
+LSI 
+kNN
+ 
+HONB
+ 
+over
+ 
+NB
+ 
+over SVM
+ 
+over 
+LSI
+ 
+COMP (5)
+ 
+51.43
+ 
+58.53
+ 
+61.09
+ 
+65.06
+ 
+26.51
+ 
+11.16
+ 
+6.50
+ 
+SCIENCE (
+4)
+ 
+59.56
+ 
+75.09
+ 
+74.34
+ 
+84.32
+ 
+41.58
+ 
+12.29
+ 
+13.43
+ 
+POLITICS (3)
+ 
+67.86
+ 
+77.36
+ 
+82.15
+ 
+83.34
+ 
+22.82
+ 
+7.73
+ 
+1.45
+ 
+RELIGION 
+(3)
+ 
+64.13
+ 
+69.88
+ 
+69.71
+ 
+74.18
+ 
+15.66
+ 
+6.15
+ 
+6.40
+ 
+Citeseer (6)
+ 
+31.30
+ 
+60.94
+ 
+60.61
+ 
+51.52
+ 
+64.62
+ 
+-
+15.45
+ 
+-
+15.0
+ 
+Cora (6)
+ 
+30.19
+ 
+55.31
+ 
+44.71
+ 
+50.33
+ 
+66.68
+ 
+-
+9.00
+ 
+12.6
+ 
+WebKB (5)
+ 
+54.82
+ 
+67.00
+ 
+48.58
+ 
+64.06
+ 
+16.86
+ 
+-
+4.39
+ 
+31.9
+ 
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+27
+ 
+ 
+B.
+ 
+Evaluating HONB by Varying the Sparsity of Input
+ 
+In the previous section we provided an analysis of HONB performance compared to the 
+traditional classifiers
+ 
+NB
+,
+ 
+SVM
+, and LSI kNN
+. We observed that for a five percent subset of the 
+training data, HONB outperforms the 
+ 
+baseline 
+Naïve Bayes 
+classifier for all the datasets and 
+outperforms the 
+other 
+traditional
+ 
+classifiers 
+in
+ 
+most cases
+. In this section we drill down more 
+deeply to expl
+ore the range of performance of HONB as a function of the 
+scarcity
+ 
+of input
+ 
+training data
+
+traditional
+ 
+classifiers including
+ 
+NB
+, 
+SVM, and 
+LSI kNN
+. 
+ 
+The summary of datasets is 
+repeated for convenience 
+in 
+Table 
+3
+. 
+ 
+Table 
+3
+: Summary of Datasets Used in Experiments Varying 
+Scarcity of Training Data
+ 
+Dataset
+ 
+Documents
+ 
+Dictionary
+ 
+Classes
+ 
+COMPUTER
+ 
+500
+ 
+2000
+ 
+5
+ 
+SCIENCE
+ 
+500
+ 
+2000
+ 
+4
+ 
+POLITICS
+ 
+500
+ 
+2000
+ 
+3
+ 
+RELIGION
+ 
+500
+ 
+2000
+ 
+3
+ 
+Citeseer
+ 
+3312
+ 
+3703
+ 
+6
+ 
+Cora
+ 
+2708
+ 
+1433
+ 
+7
+ 
+WebKB
+ 
+877
+ 
+1703
+ 
+5
+ 
+ 
+Although there are explicit links in some of these datasets, as noted previously 
+HONB
+ 
+does not 
+use them. We are only interested in modeling the textual data so that we can assess the impact of 
+leveraging implicit higher
+-
+order information. For the following experiments we use the standard 
+evaluation metric
+ 
+of a
+ccuracy
+. 
+As mentioned, in the 
+analysis in this section we vary the 
+scarcity
+ 
+of the input (i.e., labeled training data) in the experiments in order to demonstrate the utility of 
+our approach. 
+Scarcity
+ 
+is measured in terms of the size of the input training set, 
+where the 
+number of docume
+nts per class 
+ranges
+ 
+from 
+5
+% to 
+9
+0%.
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+28
+ 
+ 
+(a) COMPUTER
+ 
+ 
+(b) SCIENCE
+ 
+ 
+(c) POLITICS
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+29
+ 
+ 
+(d) RELIGION
+ 
+ 
+(e) Citeseer
+ 
+ 
+(f) Cora
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+30
+ 
+ 
+(g) WebKB
+ 
+Fig.
+ 
+7: Classifier Accuracy
+ 
+from 5% to 90% of training set.
+ 
+Fig
+. 7
+(a) through
+ 
+Fig. 
+7 (d) 
+confirm
+ 
+that 
+HONB 
+consistently 
+outperforms 
+the
+ 
+baseline method
+,
+ 
+traditional 
+NB,
+ 
+in terms of 
+classification 
+on the COMPUTER, SCIENCE, POLITICS, and 
+RELIGION
+ 
+datasets
+. All these accuracy improvements 
+of HONB over NB 
+are 
+statistically 
+significant 
+at the five percent level 
+for 
+all the percentages shown from 5% to 90%.  
+HONB 
+per
+forms exceptionally well on 20 N
+ewsgroups subsets
+,
+ 
+and in addition to 
+outperforming the
+ 
+baseline classifier it also outperforms 
+the 
+state
+-
+of
+-
+the
+-
+art SVM classifier, 
+as well as
+ 
+LSI kNN. 
+Improvement over SVM
+ 
+is statistically significant 
+at the five percent level 
+for all the percentages 
+above
+ 
+from 5% to 90%
+. Improvement over 
+LSI kNN is 
+also 
+statistically significant 
+at the five 
+percent level 
+except for 
+the 80% and
+ 
+90%
+ 
+samples
+ 
+on 
+the 
+COMPUTER dataset, 
+the 5%, 
+1
+0% and 
+60
+% to 
+90% 
+samples 
+for 
+the 
+POLITICS dataset, and
+ 
+the
+ 
+90% 
+sample for the RELIGION dataset.
+ 
+A slightly different pattern of performance can be 
+seen on Citeseer (Fig.
+ 
+7 (e))
+ 
+and Cora (Fig
+.
+ 
+7 
+(f)) datasets. While classification accuracy of each method monotonically increase
+d
+ 
+with 
+increasing training set size, HONB drastically outperformed NB when training sets were small
+,
+ 
+reaching close to 
+SVM and LSI kNN. Interestingly LSI kNN performs comp
+arably with SVM 
+for all the training set sizes
+,
+ 
+and after about 50% NB also 
+achieves similar performance
+. For our 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+31
+ 
+last 
+dataset,
+ 
+WebKB
+,
+ 
+we see a similar performance pattern 
+as
+ 
+that 
+of 
+the 20 N
+ewsgroups subsets
+ 
+in that HONB outperforms
+ 
+the baseline NB classi
+fier
+ 
+for all training set percentages. However, 
+here again 
+improvement is statistically significant
+ 
+at the five percent level
+ 
+only up to 
+the 
+50% 
+sample
+ 
+size. 
+In addition, although LSI kNN performs comparably with SVM 
+on
+ 
+all the other 
+datasets, 
+SVM performs
+ 
+exceptionally well 
+on
+ 
+this dataset and outperforms LSI kNN by a large 
+margin
+. Nonetheless, the performance of 
+HONB 
+is
+ 
+close to SVM 
+in the
+ 
+5
+% to 
+10% 
+sample size 
+range, 
+and the difference
+ 
+between the two is not significant at five percent
+. 
+WebKB is a much 
+smaller dataset than the others (see 
+Table 
+3
+) resulting in many fewer training documents per 
+class for each subset of the training dat
+a selected. Additionally, we should note that the class 
+distribution of WebKB is quite different from that of the other datasets. One of the five classes 
+(the student class) has many more documents than the others. Despite these differences HONB 
+still achi
+eves better performance 
+compare
+d
+ 
+to 
+the
+ 
+baseline model.
+ 
+This highlights the robustness 
+of HONB over different datasets with different class distributions.
+ 
+These results are especially encouraging in
+ 
+that they suggest that higher
+-
+order methods we
+re 
+able to 
+construct robust mod
+els even when training data was particularly scarce. We speculate 
+that changes
+ 
+in the distribution of highly
+-
+discriminative terms across classes as a result of
+ 
+increasing training set size allowed NB to outperform HONB on the Citeseer
+ 
+a
+nd Cora datasets 
+once the amount of training data reached a certain point. We
+ 
+are currently investigating this 
+hypothesis and intend to report our 
+fin
+dings as
+ 
+part of
+ 
+future work.
+ 
+We 
+conclude
+ 
+that the 
+advantage of HONB,
+ 
+especially 
+at the 5% to
+ 
+10
+% 
+sample 
+size range,
+ 
+for 
+all datasets 
+is due to the lack of sufficient information in these 
+small
+ 
+training sets to estimate the 
+parameters for a 
+traditional
+ 
+model. Simply put, there are too few documents per class. Even with 
+a very small number of documents per cla
+ss, however, 
+HONB leverages
+ 
+a 
+large
+ 
+number of 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+32
+ 
+second
+-
+order paths. These paths enable 
+HONB
+ 
+to generalize even under conditions of extremely 
+scarce input.
+ 
+ 
+In 
+order to verify the value of latent higher
+-
+order information, in an additional experiment we 
+used what we termed 
+pure
+ 
+second
+-
+order paths. 
+In this case we enumerated
+ 
+only length two paths 
+between entities (words) that did not co
+-
+occur elsewhere in the colle
+ction. This means we 
+exploited 
+only
+ 
+the higher
+-
+order latent information. 
+Table 
+4
+ 
+compares the accuracy of HONB vs. 
+HONB with pure second
+-
+order paths. As before eight random samples were chosen for each 
+newsgroup category and the average accuracies computed. As can be seen in Table 
+5
+, there is no 
+statistically significant difference bet
+ween the results. 
+ 
+We conclude that the performance improvement of Higher Order Naïve Bayes is due to the 
+fact that the algorithm leverages the latent information present in higher
+-
+order paths. By 
+exploiting this latent information we obtain significantly 
+better results than traditional I.I.D. 
+classifiers
+ 
+on several datasets
+.  
+ 
+Table 
+4
+: Accuracy of HONB vs. HONB with pure higher
+-
+order paths
+ 
+Dataset
+ 
+HONB (Avg.)
+ 
+HONB pure (Avg.) 
+ 
+T
+-
+test p
+-
+value
+ 
+COMP (5)
+ 
+65.1
+ 
+64.9
+ 
+0.73
+ 
+SCI (4)
+ 
+84.3
+ 
+84.2
+ 
+0.82
+ 
+POL (3)
+ 
+83.3
+ 
+83.6
+ 
+0.76
+ 
+REL (3)
+ 
+74.2
+ 
+74.5
+ 
+0.88
+ 
+ 
+Overall, these results indicate that when there is insufficient information for 
+traditional 
+ 
+Naïve 
+Bayes to estimate parameters, 
+Higher Order
+ 
+Naïve Bayes exploits the latent information in 
+higher
+-
+order paths to achieve significantly better generalization.
+ 
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+33
+ 
+VI.
+ 
+D
+ISCUSSION
+ 
+By taking higher
+-
+
+
+ 
+
+
+ 
+we reveal the latent semantics that distinguish instances of different classes. 
+These results also 
+support our hypothesis that we can capture class
+-
+specific laten
+t information in a generative 
+classification model like Naïve Bayes under certain 
+sparse data
+ 
+conditions. 
+Indeed, for some 
+applications all one can get is a very small number of labeled examples: precisely the conditions 
+under which 
+Higher Order
+ 
+Naïve Baye
+s performs well.
+ 
+ 
+One of the limitations of Higher Order Naïve Bayes is the 
+constraint
+ 
+to binary data
+,
+ 
+which 
+indicates only the presence or absence of a word in a document. 
+In consequence,
+ 
+ou
+r results may 
+not generalize
+ 
+to multinomial data which includes w
+ord frequency information. 
+However, o
+ne 
+direction 
+of
+ 
+our future work is to adapt 
+Higher Order Naïve Bayes
+ 
+to use a multinomial model 
+instead of a multivariate model. 
+It may be possible to incorporate
+ 
+word frequency information in 
+a higher
+-
+order path. For example, in the second order path w
+1
+~D
+x
+~w
+2
+~D
+y
+~w
+3
+, the word 
+frequencies in D
+x
+ 
+and D
+y
+ 
+could
+ 
+be used respectively for w
+1
+ 
+and w
+3
+. w
+2
+ 
+poses a problem because 
+it occurs in two documents: D
+x
+ 
+and D
+y
+, and we c
+ould cho
+o
+se to use either frequency 
+or 
+some 
+combination.  In any case, by leveraging word frequency information in higher
+-
+order paths it 
+may be possible to exploit more information and obtain 
+improvements on non
+-
+binary data sets
+.  
+This is especially intere
+sting given the observations of the difference in performance of 
+multivariate vs. multinomial models in 
+[
+17
+]
+.
+ 
+VII.
+ 
+C
+ONCLUSIONS
+ 
+In prior work [9
+], we gave a mathematical proof supported by empirical results
+ 
+of the 
+dependence of LSI on higher
+-
+order paths. In this
+ 
+work, a general approach
+ 
+to leveraging higher
+-
+order dependencies for supervised learning was developed.
+ 
+We presented a novel classi
+fi
+cation 
+method termed 
+Higher Order
+ 
+Naïve 
+Bayes.
+ 
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+34
+ 
+Higher
+-
+order 
+paths allow a classi
+fi
+er to oper
+ate on a much richer data 
+repre
+sentatio
+n than the 
+conventional feature
+-
+vector form. This is especially important
+ 
+when working with small 
+training 
+sets where accurate parameter estimation becom
+es very challenging 
+for traditional I.I.D. 
+approaches 
+[11
+]. Experimental results a
+ffi
+rmed 
+the value of leveraging higher
+-
+order paths
+ 
+on 
+binary data
+, resulting in
+ 
+signi
+fi
+cant improvements in classi
+fi
+cation accuracies on benchmark text 
+corpora
+ 
+across a wide range of training set sizes.
+ 
+ 
+Based on these and other similar results, we conclude that 
+f
+or binary data sets, 
+higher order 
+paths provide valuable information that can improve model performance over 
+traditional 
+models
+.
+  
+This work moves the field a step closer to understanding how higher
+-
+order information should be 
+leveraged 
+in a systematic way
+ 
+for greatest impact
+.
+ 
+A
+CKNOWLEDGMENT
+S
+ 
+ 
+The authors wish to thank Rutgers University, the National Science Foundation
+ 
+and the 
+Department of Homeland Security. This material is based upon work
+ 
+partially supported by the 
+National Science Foundation under Gran
+t Numbers
+ 
+0703698 and 0712139 as well as by the 
+Department of Homeland Security Science
+ 
+& Technol
+ogy Directorate. Any opinions, fi
+ndin
+gs, 
+and conclusions or recommen
+dations expressed in this material are those of the authors and do 
+not necessarily
+ 
+refle
+ct 
+the views of the National Science Foundation, the Department of 
+Homeland Security or Rutgers University.
+ 
+ 
+The authors also wish to thank 
+colleague
+ 
+Shenzhi Li for her many insightful
+ 
+comments during 
+the development of Higher Order 
+Naïve Bayes
+.
+ 
+We also 
+would
+ 
+like to thank the anonymous 
+reviewers for their input; it improved this article significantly. Finally, c
+o
+-
+author W. M. 
+Pottenger gratefully acknowledges the continuing
+ 
+help of his Lord and Savior, Yeshua the 
+Messiah (Jesus the Christ) in his life
+ 
+and wor
+k.
+ 
+
+TKDE
+-
+2008
+-
+12
+-
+0640
+ 
+35
+ 
+R
+EFERENCES
+ 
+[1]
+ 
+B. 
+Taskar, 
+P.
+ 
+Ab
+beel,
+ 
+and 
+D. 
+
+Discriminative Probabilistic Models for Relational Data
+
+  
+In Proceedings of Uncertainty in 
+Artificial Intelligence conference UAI02
+, Edmonton, Canada, 2002.
+ 
+[2]
+ 
+L. 
+Getoor,  and 
+C.P. 
+Diehl, . 
+
+Link Mining: 
+A Survey
+
+ 
+SIGKDD Explorations. 7 2, 2005, pp. 3
+-
+12.
+ 
+[3]
+ 
+S.A. 
+Macskassy, 
+F.
+ 
+and Provost, 
+
+A brief survey of machine learning methods for classification in networked data and application to 
+suspicion scoring
+
+ 
+Workshop on Statistical Network Analysis at 23rd 
+International Conference on Machine Learning
+, Pittsburg, PA,
+ 
+2006.
+.
+ 
+[4]
+ 
+R. 
+Angelova, and 
+G. 
+Weikum, 
+
+Graph
+-
+based Text Classification: Learn From Your Neighbors
+
+ 
+
+, 
+Seattle,
+ 
+USA, 2006
+.
+ 
+[5]
+ 
+S. 
+Chakrabarti, S, Dom, B and Indyk, 
+P.
+
+Enhanced
+ 
+Hypertext Classification Using Hyper
+-
+Links
+
+  
+In Proceedings of ACM SIGMOD 
+Conference. pp. 307
+-
+318
+,1998
+ 
+[6]
+ 
+J. Neville, and D. Jensen
+ 
+
+Iterative Cla
+
+ 
+In Proc. AAAI
+-
+2000 Workshop on Learning Statistical Models from 
+Relational Data. pp. 13
+-
+20, 2000.
+ 
+[7]
+ 
+B. Taskar
+, 
+E. 
+Segal,
+ 
+and 
+D. 
+Koller
+
+Probabilistic Classification and Clustering in Relational Data
+
+ 
+2001. In Proc. 17th International Joint 
+Conference on A
+rtificial Intelligence. pp. 870
+-
+878.
+ 
+[8]
+ 
+
+Link
+-
+based Classification
+
+ 
+Washington DC. U.S.A
+, 2003,
+ 
+Proceedings of the Twentieth international conference on 
+machine learning (ICML
+-
+2003).
+ 
+[9]
+ 
+A. Kontostathis 
+and 
+W.M. 
+Pottenger, 
+
+A Framework for
+ 
+Understanding LSI Performance
+
+ 
+Information Processing & Management. 42 1, 
+2006, pp. 56
+-
+73.
+ 
+[10]
+ 
+S. 
+Deerwester,  
+S.T. Dumais, R. Harshman,
+ 
+
+Indexing by latent semantic analysis
+
+ 
+Journal of the American Society for Information 
+Science, Vol. 41, 
+6, 1990, 
+pp. 3
+91
+-
+407.
+ 
+[11]
+ 
+N. 
+Slonim, and 
+N. 
+Tishby
+,
+ 
+
+The Power of Word Clusters for Text Classification
+
+23rd European Colloquium on Information Retrieval 
+Research
+, 2001
+.
+ 
+[12]
+ 
+D. 
+Jensen
+, J. Neville and B.
+ 
+
+Why Collective Inference Imp
+
+ 
+
+ 
+[13]
+ 
+P. 
+Domingos, and 
+M. 
+Pazzani, 
+
+Beyond independence: Conditions for the optimality of the simple Bayesian classifier
+
+ 
+1996. In 
+Proceedings of the Thirteenth International Conference on Machine Learning. pp. 105
+-
+112.
+ 
+[14]
+ 
+G.
+I. Webb
+ 
+, J.R. Boughto
+n, and Z. Wang,
+ 
+
+Not So Naive Bayes: Aggrega
+ting One
+-
+
+2005
+ 
+[15]
+ 
+R. 
+Diestel, 
+
+Graph Theory
+
+ 
+Springer Press, , ISBN 0
+-
+387
+-
+95014
+-
+1, 2000.
+ 
+[16]
+ 
+J.H. 
+Van Lint, and 
+R.M.A. 
+Wilson, 
+
+Course in Combinatorics
+
+ 
+Cambridge University Press, ISBN: 0
+-
+521
+-
+42260
+-
+4, 1993.
+ 
+[17]
+ 
+A.K. McCallum, and K. Nigam,
+ 
+
+A comparison of event models for n
+aive bayes
+ 
+text 
+c
+lassificat
+
+In Working Notes of the ICMLAAAI 
+Workshop on Learning for Text Categorization
+, 1998
+.
+ 
+[18]
+ 
+S. 
+Chakrabarti, 
+
+M
+ining the Web: Discovering Knowl
+
+ 
+Morgan Kaufmann, 2002.
+ 
+[19]
+ 
+J. 
+Stirling
+
+M
+
+ 
+1730.
+ 
+[20]
+ 
+L.
+E. Holzman
+, 
+T
+.
+A. Fisher
+, 
+L
+.
+M. Galitsky
+, 
+A
+.
+ 
+Kontostathis
+, 
+W
+.
+M. Pottenger
+
+A Software Infrastructu
+re for Research in T
+extual Data 
+Mining
+
+The International Journal on Artificial Intelligence Tools, Vol. 14
+(4)
+, 
+2004, 
+pp. 829
+-
+849.
+ 
+[21]
+ 
+A
+.
+K
+.
+ 
+McCallum, K
+.
+ 
+Nigam, J
+.
+ 
+Rennie, K
+.
+ 
+Seymore
+
+Automating the Construction of Internet Portals with Machine Learning
+
+Information 
+Retrieval, 
+pp. 127
+-
+163
+, 2000
+.
+ 
+[22]
+ 
+M
+.
+ 
+Craven, D
+.
+ 
+DiPasquo, D
+.
+ 
+Freitag, A
+.
+ 
+McCallum, 
+K. Nigam, S. 
+Slattery
+, 
+
+Learning to Extract Symbolic Knowledge from the World Wid
+e 
+
+1998. In Proceedings of 15th National Conference on Artificial Intelligence (AAAI
+-
+98).
+ 
+[23]
+ 
+P. Sen
+ 
+and 
+L
+. 
+Getoor, 
+
+Link
+-
+based Classification
+
+ 
+University of Maryland Technical Report, Number CS
+-
+TR
+-
+4858 , February 2007, 2007.
+ 
+[24]
+ 
+D.R. 
+Swanson, 
+
+Migraine and magnesium: eleven neglected connections
+
+Perspectives in Biology and Medicine, 31(4), 526
+-
+557
+, 1998
+.
+ 
+[25]
+ 
+S. 
+Zelikovitz and H. Hirsh,
+ 
+
+Using LSI for text classification in the presence of background
+ 
+text
+
+ 
+In Proceedings of the Conference on 
+Information
+ 
+and Knowledge Management, pg.
+ 
+113
+
+118,
+ 
+2001.
+ 
+[26]
+ 
+S
+.
+ 
+Zelikovitz and H
+
+Improving short
+-
+text classification u
+sing unlabeled background knowledge to assess document similarity
+
+ 
+In 
+Proceedings of the 17th International Conference on Machine Learning, pages 1183
+
+1190, 2000.
+ 
+[27]
+ 
+J
+.
+ 
+Sun, Z
+.
+ 
+Chen, H
+.
+ 
+Zeng, Y
+.
+ 
+Lu, C
+.
+ 
+Shi, W
+.
+ 
+Ma, "Supervised Latent Semantic Indexing for Do
+cument Categorization," Data Mining, IEEE 
+International Conference on, pp. 535
+-
+538, Fourth IEEE International Conference on Data Mining (ICDM'04), 2004.
+ 
+[28]
+ 
+T. 
+Liu, 
+Z.
+ 
+Chen, 
+B. 
+Zhang, 
+W. 
+Ma, 
+G.
+ 
+Wu, 
+
+Improving text classification using local latent semantic ind
+exing
+
+, Fourth IEEE International 
+Conference on Data Mining, vol., no., pp. 162
+-
+169, 1
+-
+4 Nov. 2004
+ 
+[29]
+ 
+ 
+S. Chakraborti, R. Mukras, R. Lothian, N. Wi
+
+Supervised Latent Semantic Indexing Using Adaptive 
+Sprinkling
+
+Proceedings of
+ 
+IJCAI, pages 1582
+
+1587, 2007.
+ 
+[30]
+ 
+ 
+F. 
+Wild, 
+C. 
+Stahl, 
+G. 
+Stermsek, 
+G. 
+Neumann, 
+Y. 
+Penya, 
+
+Parameters Driving Effectiveness of Automated Essay Scoring with LSA
+
+ 
+In
+ 
+ 
+Proceedings of the 9th CAA, pp.485
+-
+494, Loughborough
+, 2005
+ 
+[31]
+ 
+F. 
+Wild, 
+
+An LSA Package for R
+
+, 
+I
+n
+ 
+Mini
+-
+Proceedings of the 1st European Workshop on Latent Semantic Analysis in Technology
+-
+Enhanced Learning, 
+Wild, Kalz, van Bruggen, and Koper (ed) , 
+11
+-
+12, March, 2007
+ 
+[32]
+ 
+A. Karatzoglou, D. Meyer, K. Hornik, 
+Support Vector Machines in R. Journal of 
+Statistical Software
+, 
+ 
+2006
+,
+ 
+15.
+ 
+
